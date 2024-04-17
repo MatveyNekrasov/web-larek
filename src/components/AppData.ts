@@ -7,10 +7,6 @@ import {
 	IOrderForm,
 } from '../types';
 
-export type CatalogChangeEvent = {
-	catalog: IProductItem[];
-};
-
 export class AppState extends Model<IAppState> {
 	catalog: IProductItem[];
 	preview: string | null;
@@ -20,6 +16,7 @@ export class AppState extends Model<IAppState> {
 		phone: '',
 		address: '',
 		payment: '',
+		total: 0,
 	};
 	formErrors: FormErrors = {};
 
@@ -43,6 +40,15 @@ export class AppState extends Model<IAppState> {
 			(orderItem) => orderItem !== item.id
 		);
 		this.emitChanges('basket:changed', item);
+	}
+
+	clearBasket() {
+		this.order.items = [];
+		this.order.address = '';
+		this.order.email = '';
+		this.order.payment = '';
+		this.order.phone = '';
+		this.order.total = 0;
 	}
 
 	isItemInBasket(item: IProductItem) {
@@ -74,12 +80,15 @@ export class AppState extends Model<IAppState> {
 		this.order[field] = value;
 
 		if (this.validateOrder()) {
-			this.events.emit('order:ready', this.order);
+			this.emitChanges('order:ready', this.order);
 		}
 	}
 
 	validateOrder() {
 		const errors: typeof this.formErrors = {};
+		if (!this.order.payment) {
+			errors.payment = 'Необходимо выбрать способ оплаты';
+		}
 		if (!this.order.address) {
 			errors.address = 'Необходимо указать адрес';
 		}
@@ -89,12 +98,9 @@ export class AppState extends Model<IAppState> {
 		if (!this.order.phone) {
 			errors.phone = 'Необходимо указать телефон';
 		}
-		if (!this.order.payment) {
-			errors.payment = 'Необходимо выбрать способ оплаты';
-		}
 
 		this.formErrors = errors;
-		this.events.emit('formErrors:change', this.formErrors);
+		this.emitChanges('formErrors:change', this.formErrors);
 		return Object.keys(errors).length === 0;
 	}
 }

@@ -1,6 +1,5 @@
 import { Component } from './base/Component';
-import { IProductItem } from '../types';
-import { bem, createElement, ensureElement } from '../utils/utils';
+import { ensureElement } from '../utils/utils';
 
 interface ICardActions {
 	onClick: (event: MouseEvent) => void;
@@ -20,8 +19,6 @@ export class Card extends Component<ICard> {
 	protected _image?: HTMLImageElement;
 	protected _price: HTMLElement;
 	protected _caregory?: HTMLElement;
-	protected _description?: HTMLElement;
-	protected _button?: HTMLButtonElement;
 
 	constructor(
 		protected blockName: string,
@@ -42,11 +39,7 @@ export class Card extends Component<ICard> {
 		this._price = ensureElement<HTMLElement>(`.${blockName}__price`, container);
 
 		if (actions?.onClick) {
-			if (this._button) {
-				this._button.addEventListener('click', actions.onClick);
-			} else {
-				container.addEventListener('click', actions.onClick);
-			}
+			container.addEventListener('click', actions.onClick);
 		}
 	}
 
@@ -81,13 +74,12 @@ export class Card extends Component<ICard> {
 			this.setText(this._price, 'Бесценно 🗿');
 		}
 	}
-
-	set description(value: string) {
-		this.setText(this._description, value);
-	}
 }
 
 export class CardPreview extends Card {
+	protected _button: HTMLButtonElement;
+	protected _description: HTMLElement;
+
 	constructor(container: HTMLElement, actions?: ICardActions) {
 		super('card', container, actions);
 		this._description = ensureElement<HTMLElement>('.card__text', container);
@@ -100,11 +92,11 @@ export class CardPreview extends Card {
 	}
 
 	blockAddButton(state: boolean) {
-		if (state) {
-			this.setDisabled(this._button, true);
-		} else {
-			this.setDisabled(this._button, false);
-		}
+		this.setDisabled(this._button, state);
+	}
+
+	set description(value: string) {
+		this.setText(this._description, value);
 	}
 }
 

@@ -9,13 +9,14 @@ export interface IProductItem {
 
 export interface IOrderForm {
 	payment: string;
-	email: string;
-	phone: string;
+	email?: string;
+	phone?: string;
 	address: string;
 }
 
 export interface IOrder extends IOrderForm {
 	items: string[];
+	total: number;
 }
 
 export interface IOrderResult {
