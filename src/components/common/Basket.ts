@@ -1,5 +1,5 @@
 import { Component } from '../base/Component';
-import { cloneTemplate, createElement, ensureElement } from '../../utils/utils';
+import { createElement, ensureElement } from '../../utils/utils';
 import { EventEmitter } from '../base/events';
 
 interface IBasketView {
@@ -21,8 +21,6 @@ export class Basket extends Component<IBasketView> {
 			'.basket__button',
 			this.container
 		);
-		/* this._total = this.container.querySelector('.basket__price');
-		this._button = this.container.querySelector('.basket__action'); */
 
 		if (this._button) {
 			this._button.addEventListener('click', () => {

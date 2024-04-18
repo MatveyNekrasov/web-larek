@@ -7,6 +7,7 @@
 - src/ — исходные файлы проекта
 - src/components/ — папка с JS компонентами
 - src/components/base/ — папка с базовым кодом
+- src/components/common/ - папка с кодом переиспользуемых классов представления
 
 Важные файлы:
 
@@ -51,7 +52,7 @@ yarn build
 
 ```
 export interface IProductItem {
-	_id: string;
+	id: string;
 	title: string;
 	description: string;
 	category: string;
@@ -64,18 +65,19 @@ export interface IProductItem {
 
 ```
 export interface IOrderForm {
-	payment: PaymentMethod;
-	email: string;
-	phone: string;
+	payment: string;
+	email?: string;
+	phone?: string;
 	address: string;
 }
 ```
 
-Список товаров в заказе
+Тип данных, полностью описывающий данные заказа
 
 ```
 export interface IOrder extends IOrderForm {
 	items: string[];
+	total: number;
 }
 ```
 
@@ -93,7 +95,6 @@ export interface IOrderResult {
 ```
 export interface IAppState {
 	catalog: IProductItem[];
-	basket: string[];
 	preview: string | null;
 	order: IOrder | null;
 }
@@ -134,4 +135,304 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 
 #### Абстрактный класс Model
 
-Базовая модель, чтобы можно было отличить ее от простых объектов с данными. В конструктор передается объект для начальной инициализации модели, а также экземпляр слушателя событий
+Базовая модель, чтобы можно было отличить ее от простых объектов с данными. В конструктор передается объект для начальной инициализации модели, а также объект брокера событий. \
+Основной метод класса `emitChanges` позволяет сгенерировать кастомное событие и опционально добавить к событию какой-либо объект с необходимыми данными.
+
+#### Абстрактный класс Component
+
+Базовый класс для всех элементов представления, используемых в приложении. \
+В конструктор передается DOM-элемент, который будет контейнером для потомков данного класса. \
+Методы базового класса `Component` позволяют управлять состоянием DOM-элементов потомков. \
+Основной метод класса `Render` возвращает элемент разметки, содержащий сгенерированный контент, для отображения на странице.
+
+### Слой данных
+
+#### Класс AppState
+
+```
+export class AppState extends Model<IAppState>
+```
+
+Класс `AppState` хранит данные о каталоге товаров и заказе пользователя, а также логику работы с этими данными. \
+Поля класса:
+
+```
+catalog: IProductItem[]; - массив объектов карточек товаров
+preview: string | null; - id товара, выбранного для просмотра
+order: IOrder = { - объект для хранения информации о заказе пользователя
+	items: [],
+	email: '',
+	phone: '',
+	address: '',
+	payment: '',
+	total: 0,
+};
+formErrors: FormErrors = {}; - объект ошибок формы оформления заказа
+events: IEvents - экземпляр класса `EventEmitter` для инициации событий при изменении данных
+```
+
+Класс предоставляет следующие методы для работы с данными:
+
+- `setCatalog(items: IProductItem[]): void` - заполняет поле catalog объектами карточек товаров и вызывает событие изменения массива товаров `items:changed`;
+- `setPreview(item: IProductItem): void` - заполняет поле preview идентификатором выбранного товара и вызывает событие изменения выбранной карточки `preview:changed`;
+- `addItemToBasket(item: IProductItem): void` - добавляет идентификатор товара в массив items объекта order и вызывает событие изменения корзины `basket:changed`;
+- `deleteItemFromBasket(item: IProductItem): void` - удаляет идентификатор товара из массива items объекта order и вызывает событие изменения корзины `basket:changed`;
+- `clearBasket(): void` - очищает объект order;
+- `isItemInBasket(item: IProductItem): boolean` - проверят наличие товара в корзине;
+- `isItemAvailable(item: IProductItem): boolean` - проверяет доступность товара для добавления в корзину;
+- `getOrderItems(): IProductItem[]` - возвращает массив товаров, добавленных в корзину;
+- `getTotal(): number` - вычисляет общую стоимость товаров, добавленных в корзину;
+- `setOrderField(field: keyof IOrderForm, value: string): void` - заполняет поля field объекта order данными value, введенными пользователем, а также запускает проверку `validateOrder()` введенных данныых. В случае успешной проверки вызывает событие готовности заказа к отправке на сервер `order:ready`;
+- `validateOrder(): boolean` - метод проверки данных, введенных пользователем. При изменении полей объекта formErrors вызывает событие `formErrors:change`;
+
+### Слой представления
+
+Все классы представления отвечают за отображение внутри контейнера (DOM-элемент) передаваемых в них данных.
+
+#### Класс Basket
+
+```
+interface IBasketView {
+	items: HTMLElement[];
+	total: number;
+}
+
+export class Basket extends Component<IBasketView>
+constructor(container: HTMLElement, protected events: EventEmitter)
+```
+
+Класс `Basket` реализует отображение корзины товаров. Конструктор класса принимает контейнер, внутри которого будут отображаться данные, и экземпляр класса `EventEmitter` для возможности инициации событий. \
+
+Поля класса:
+
+- `_list: HTMLElement` - элемент списка товаров;
+- `_total: HTMLElement` - элемент для оторбражения суммы заказа;
+- `_button: HTMLElement` - кнопка перехода к оформлению заказа;
+
+Методы класса:
+
+- `set items(items: HTMLElement[])` - сеттер для заполнения списка товаров в корзине;
+- `set total(total: number)` - сеттер для заполнения суммы заказа.
+
+#### Класс Form
+
+```
+interface IFormState {
+	valid: boolean;
+	errors: string[];
+}
+
+export class Form<T> extends Component<IFormState>
+constructor(protected container: HTMLFormElement, protected events: IEvents)
+```
+
+Класс `Form` предоставляет базовый функционал работы с формами в приложении. Конструктор класса принимает элемент формы и экземпляр класса `EventEmitter` для возможности инициации событий.
+
+Поля класса:
+
+- `_submit: HTMLButtonElement` - кнопка отправки формы;
+- `_errors: HTMLElement` - элемент для отображения ошибок валидации формы;
+
+Методы класса:
+
+- `protected onInputChange(field: keyof T, value: string): void` - вызывается при изменении данных в полях ввода формы и инициирует события вида `formName.fieldName:change`;
+- `set valid(value: boolean)` - сеттер для установки состояния кнопки отправки формы;
+- `set errors(value: string)` - сеттер для установки содержимого элемента ошибок формы;
+- `render(state: Partial<T> & IFormState): HTMLFormElement` - возвращает элемент формы для отображения на странице.
+
+#### Класс Modal
+
+```
+interface IModalData {
+	content: HTMLElement;
+}
+
+export class Modal extends Component<IModalData>
+constructor(container: HTMLElement, protected events: IEvents)
+```
+
+Класс `Modal` реализует модальные окна в приложении. Конструктор класса принимает контейнер, внутри которого будут отображаться данные, и экземпляр класса `EventEmitter` для возможности инициации событий.
+
+Поля класса:
+
+- `_closeButton: HTMLButtonElement` - кнопка закрытия модального окна;
+- `_content: HTMLElement` - содержимое модального окна;
+
+Методы класса:
+
+- `set content(value: HTMLElement)` - сеттер для установки содержимого модального окна;
+- `open(): void, close(): void` - методы открытия и закрытия модального окна соответственно;
+- `render(data: IModalData): HTMLElement` - метод для отображения модального окна на странице.
+
+#### Класс Success
+
+```
+interface ISuccess {
+	total: number;
+}
+
+interface ISuccessActions {
+	onClick: () => void;
+}
+
+export class Success extends Component<ISuccess>
+constructor(container: HTMLElement, actions: ISuccessActions)
+```
+
+Класс `Success` реализует окно успешного заказа. Конструктор класса принимает контейнер, внутри которого будут отображаться данные, и объект, содержащий коллбэк для обработки события клика по кнопке.
+
+Поля класса:
+
+- `_close: HTMLElement` - кнопка "Продолжить покупки";
+- `_total: HTMLElement` - элемент отображения суммы оформленного заказа;
+
+Метод класса: `set total(value: number)` - сеттер для установки значения суммы оформленного заказа.
+
+#### Класс Card
+
+```
+interface ICardActions {
+	onClick: (event: MouseEvent) => void;
+}
+
+export interface ICard {
+	title: string;
+	category?: string;
+	price: number;
+	image?: string;
+	description?: string;
+	index?: string;
+}
+
+export class Card extends Component<ICard>
+constructor(
+		protected blockName: string,
+		container: HTMLElement,
+		actions?: ICardActions
+	)
+```
+
+Класс `Card` реализует отображение карточек товаров в каталоге на главной странице. Конструктор класса принимает название блока (согласно БЭМ), в котором будет осуществляться поиск элементов разметки, контейнер, внутри которого будут отображаться данные, и объект, содержащий коллбэк для обработки события клика по карточке товара.
+
+Поля класса:
+
+- `_title: HTMLElement` - элемент разметки для отображения названия товара;
+- `_image?: HTMLImageElement` - картинка товара;
+- `_price: HTMLElement` - цена товара;
+- `_caregory?: HTMLElement` - категория товара.
+
+Также класс предоставляет сеттеры и геттеры для установки и чтения значений, сохраненных в полях класса.
+
+#### Класс CardPreview
+
+```
+export class CardPreview extends Card
+constructor(container: HTMLElement, actions?: ICardActions)
+```
+
+Класс `CardPreview` расширяет класс `Card` и предназначен для отображения карточки выбранного товара. Конструктор класса принимает контейнер, внутри которого будут отображаться данные, и объект, содержащий коллбэк для обработки события клика по кнопке добавления товара в корзину.
+
+Поля класса:
+
+- `_button: HTMLButtonElement` - кнопка добавления товара в корзину;
+- `_description: HTMLElement` - элемент разметки для оторбражения описания выбранного товара.
+
+Методы класса позволяют управлять состоянием кнопки добавления товара в корзину, а также устанавливать значения элемента разметки для описания товара.
+
+#### Класс CardCompact
+
+```
+export class CardCompact extends Component<ICard>
+constructor(container: HTMLElement, actions?: ICardActions)
+```
+
+Класс `CardCompact` реализует отображение карточек товаров внутри корзины.Конструктор класса принимает контейнер, внутри которого будут отображаться данные, и объект, содержащий коллбэк для обработки события клика по кнопке удаления товара из корзины.
+
+Поля класса:
+
+- `_title: HTMLElement` - элемент разметки для отображения названия товара;
+- `_price: HTMLElement` - цена товара;
+- `_button: HTMLButtonElement` - кнопка удаления товара из корзины;
+- `_index: HTMLElement` - порядковый номер товара в корзине.
+
+Также класс предоставляет сеттеры и геттеры для установки и чтения значений, сохраненных в полях класса.
+
+#### Класс Order
+
+```
+interface IOrderActions {
+	onClick: (event: MouseEvent) => void;
+}
+
+export class Order extends Form<IOrderForm>
+constructor(
+		container: HTMLFormElement,
+		events: IEvents,
+		actions?: IOrderActions
+	)
+```
+
+Класс `Order` реализует отображение формы с выбором способа оплаты заказа и адреса доставки. Конструктор класса принимает контейнер (элемент формы), внутри которого будут отображаться данные, экземпляр класса `EventEmmiter` для возможности инициации событий и объект, содержащий коллбэк для обработки события клика по кнопкам выбора способа оплаты.
+
+Поля класса:
+
+- `_cardPaymentButton: HTMLButtonElement;` - кнопка выбора оплаты онлайн;
+- `_cashPaymentButton` - кнопка выбора оплаты наличными.
+
+Также класс предоставляет сеттеры для установки значений в полях формы.
+
+#### Класс Contacts
+
+```
+export class Contacts extends Form<IOrderForm>
+constructor(container: HTMLFormElement, events: IEvents)
+```
+
+Класс `Contacts` реализует отображение формы для заполнения контактных данных пользователя. Конструктор класса принимает контейнер (элемент формы), внутри которого будут отображаться данные, и экземпляр класса `EventEmmiter` для возможности инициации событий.\
+Класс предоставляет сеттеры для установки значений в полях формы.
+
+#### Класс Page
+
+```
+interface IPage {
+	counter: number;
+	catalog: HTMLElement[];
+	locked: boolean;
+}
+
+export class Page extends Component<IPage>
+constructor(container: HTMLElement, protected events: IEvents)
+```
+
+Класс `Page` реализует отображение главной страницы приложения. Конструктор класса принимает контейнер (элемент формы), внутри которого будут отображаться данные, и экземпляр класса `EventEmmiter` для возможности инициации событий.
+
+Поля класса:
+
+- `_counter: HTMLElement` - элемент для отображения количества товаров в корзине;
+- `_catalog: HTMLElement` - каталог товаров;
+- `_wrapper: HTMLElement` - элемент-обертка основного контента страницы;
+- `_basket: HTMLElement` - элемент корзины на странице.
+
+Методы класса позволяют устанавливать значения в полях, а также блокировать прокрутку страницы при открытии модальных окон.
+
+### Слой коммуникации
+
+#### Класс ShopApi
+
+```
+export interface IShopApi {
+	getProductItemList: () => Promise<IProductItem[]>;
+	getProductItem: (id: string) => Promise<IProductItem>;
+	orderItem: (order: IOrder) => Promise<IOrderResult>;
+}
+
+export class ShopApi extends Api implements IShopApi
+```
+
+Принимает в конструктор экземпляр класса Api и предоставляет методы реализующие взаимодействие с бэкендом сервиса.
+
+Методы класса:
+
+- `getProductItemList(): Promise<IProductItem[]>` - получает каталог товаров;
+- `getProductItem(id: string): Promise<IProductItem>` - получает информацию о товаре по переданному идентификатору;
+- `orderItem(order: IOrder): Promise<IOrderResult>` - отправка информации об оформленном заказе на сервер.
