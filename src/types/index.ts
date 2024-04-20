@@ -4,7 +4,7 @@ export interface IProductItem {
 	description: string;
 	category: string;
 	image: string;
-	price: number;
+	price: number | null;
 }
 
 export interface IOrderForm {
@@ -31,3 +31,8 @@ export interface IAppState {
 }
 
 export type FormErrors = Partial<Record<keyof IOrder, string>>;
+
+export type ApiListResponse<Type> = {
+	total: number;
+	items: Type[];
+};

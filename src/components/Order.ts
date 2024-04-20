@@ -1,6 +1,6 @@
 import { Form } from './common/Form';
 import { IOrderForm } from '../types';
-import { IEvents } from './base/events';
+import { IEvents } from './base/Events';
 
 interface IOrderActions {
 	onClick: (event: MouseEvent) => void;

@@ -1,5 +1,6 @@
 import { Component } from './base/Component';
 import { ensureElement } from '../utils/utils';
+import { settings } from '../utils/constants';
 
 interface ICardActions {
 	onClick: (event: MouseEvent) => void;
@@ -65,6 +66,8 @@ export class Card extends Component<ICard> {
 
 	set category(value: string) {
 		this.setText(this._caregory, value);
+		this.toggleClass(this._caregory, 'card__category_soft', false);
+		this.toggleClass(this._caregory, settings.categoryClassNames[value], true);
 	}
 
 	set price(value: number) {

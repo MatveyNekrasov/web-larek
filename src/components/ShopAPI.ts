@@ -1,5 +1,5 @@
-import { Api, ApiListResponse } from './base/api';
-import { IOrder, IProductItem, IOrderResult } from '../types/';
+import { Api } from './base/Api';
+import { IOrder, IProductItem, IOrderResult, ApiListResponse } from '../types/';
 
 export interface IShopApi {
 	getProductItemList: () => Promise<IProductItem[]>;

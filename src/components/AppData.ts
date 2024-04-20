@@ -7,17 +7,19 @@ import {
 	IOrderForm,
 } from '../types';
 
+export const defaultOrderState: IOrder = {
+	items: [],
+	email: '',
+	phone: '',
+	address: '',
+	payment: '',
+	total: 0,
+};
+
 export class AppState extends Model<IAppState> {
 	catalog: IProductItem[];
 	preview: string | null;
-	order: IOrder = {
-		items: [],
-		email: '',
-		phone: '',
-		address: '',
-		payment: '',
-		total: 0,
-	};
+	order: IOrder = Object.assign({}, defaultOrderState);
 	formErrors: FormErrors = {};
 
 	setCatalog(items: IProductItem[]) {
@@ -43,12 +45,10 @@ export class AppState extends Model<IAppState> {
 	}
 
 	clearBasket() {
-		this.order.items = [];
-		this.order.address = '';
-		this.order.email = '';
-		this.order.payment = '';
-		this.order.phone = '';
-		this.order.total = 0;
+		this.order = Object.assign({}, defaultOrderState, {
+			items: [],
+		});
+		this.emitChanges('basket:changed');
 	}
 
 	isItemInBasket(item: IProductItem) {

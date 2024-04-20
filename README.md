@@ -57,7 +57,7 @@ export interface IProductItem {
 	description: string;
 	category: string;
 	image: string;
-	price: number;
+	price: number | null;
 }
 ```
 
@@ -150,7 +150,7 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 #### Класс AppState
 
 ```
-export class AppState extends Model<IAppState>
+class AppState extends Model<IAppState>
 ```
 
 Класс `AppState` хранит данные о каталоге товаров и заказе пользователя, а также логику работы с этими данными. \
@@ -197,7 +197,7 @@ interface IBasketView {
 	total: number;
 }
 
-export class Basket extends Component<IBasketView>
+class Basket extends Component<IBasketView>
 constructor(container: HTMLElement, protected events: EventEmitter)
 ```
 
@@ -222,7 +222,7 @@ interface IFormState {
 	errors: string[];
 }
 
-export class Form<T> extends Component<IFormState>
+class Form<T> extends Component<IFormState>
 constructor(protected container: HTMLFormElement, protected events: IEvents)
 ```
 
@@ -247,7 +247,7 @@ interface IModalData {
 	content: HTMLElement;
 }
 
-export class Modal extends Component<IModalData>
+class Modal extends Component<IModalData>
 constructor(container: HTMLElement, protected events: IEvents)
 ```
 
@@ -275,7 +275,7 @@ interface ISuccessActions {
 	onClick: () => void;
 }
 
-export class Success extends Component<ISuccess>
+class Success extends Component<ISuccess>
 constructor(container: HTMLElement, actions: ISuccessActions)
 ```
 
@@ -304,7 +304,7 @@ export interface ICard {
 	index?: string;
 }
 
-export class Card extends Component<ICard>
+class Card extends Component<ICard>
 constructor(
 		protected blockName: string,
 		container: HTMLElement,
@@ -326,7 +326,7 @@ constructor(
 #### Класс CardPreview
 
 ```
-export class CardPreview extends Card
+class CardPreview extends Card
 constructor(container: HTMLElement, actions?: ICardActions)
 ```
 
@@ -342,7 +342,7 @@ constructor(container: HTMLElement, actions?: ICardActions)
 #### Класс CardCompact
 
 ```
-export class CardCompact extends Component<ICard>
+class CardCompact extends Component<ICard>
 constructor(container: HTMLElement, actions?: ICardActions)
 ```
 
@@ -364,7 +364,7 @@ interface IOrderActions {
 	onClick: (event: MouseEvent) => void;
 }
 
-export class Order extends Form<IOrderForm>
+class Order extends Form<IOrderForm>
 constructor(
 		container: HTMLFormElement,
 		events: IEvents,
@@ -384,7 +384,7 @@ constructor(
 #### Класс Contacts
 
 ```
-export class Contacts extends Form<IOrderForm>
+class Contacts extends Form<IOrderForm>
 constructor(container: HTMLFormElement, events: IEvents)
 ```
 
@@ -400,7 +400,7 @@ interface IPage {
 	locked: boolean;
 }
 
-export class Page extends Component<IPage>
+class Page extends Component<IPage>
 constructor(container: HTMLElement, protected events: IEvents)
 ```
 
@@ -426,7 +426,7 @@ export interface IShopApi {
 	orderItem: (order: IOrder) => Promise<IOrderResult>;
 }
 
-export class ShopApi extends Api implements IShopApi
+class ShopApi extends Api implements IShopApi
 ```
 
 Принимает в конструктор экземпляр класса Api и предоставляет методы реализующие взаимодействие с бэкендом сервиса.

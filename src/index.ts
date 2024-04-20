@@ -2,8 +2,8 @@ import './scss/styles.scss';
 
 import { ShopApi } from './components/ShopAPI';
 import { API_URL, CDN_URL, settings } from './utils/constants';
-import { EventEmitter } from './components/base/events';
-import { AppState } from './components/AppData';
+import { EventEmitter } from './components/base/Events';
+import { AppState, defaultOrderState } from './components/AppData';
 import { IProductItem, IOrderForm } from './types';
 import { Page } from './components/Page';
 import { Modal } from './components/common/Modal';
@@ -15,21 +15,6 @@ import { cloneTemplate, ensureElement } from './utils/utils';
 
 const events = new EventEmitter();
 const api = new ShopApi(CDN_URL, API_URL);
-
-// Чтобы мониторить все события, для отладки
-events.onAll(({ eventName, data }) => {
-	console.log(eventName, data);
-});
-
-function clearOrderState(
-	appData: AppState,
-	order: Order,
-	events: EventEmitter
-) {
-	appData.clearBasket();
-	order.payment = '';
-	events.emit('basket:changed');
-}
 
 //Все шаблоны
 const cardCatalogTemplate = ensureElement<HTMLTemplateElement>('#card-catalog');
@@ -89,28 +74,21 @@ events.on('preview:changed', (item: IProductItem) => {
 		},
 	});
 	if (item) {
-		api
-			.getProductItem(item.id)
-			.then((result) => {
-				item = { ...result };
+		if (appData.isItemAvailable(item) && !appData.isItemInBasket(item)) {
+			card.blockAddButton(false);
+		} else {
+			card.blockAddButton(true);
+		}
 
-				if (appData.isItemAvailable(item) && !appData.isItemInBasket(item)) {
-					card.blockAddButton(false);
-				} else {
-					card.blockAddButton(true);
-				}
-
-				modal.render({
-					content: card.render({
-						category: item.category,
-						title: item.title,
-						image: item.image,
-						price: item.price,
-						description: item.description,
-					}),
-				});
-			})
-			.catch((err) => console.error(err));
+		modal.render({
+			content: card.render({
+				category: item.category,
+				title: item.title,
+				image: item.image,
+				price: item.price,
+				description: item.description,
+			}),
+		});
 	} else {
 		modal.close();
 	}
@@ -159,6 +137,9 @@ events.on(
 
 //Открыть форму заказа
 events.on('order:open', () => {
+	appData.order = Object.assign({}, defaultOrderState, {
+		items: appData.order.items,
+	});
 	modal.render({
 		content: order.render({
 			payment: '',
@@ -190,7 +171,8 @@ events.on('contacts:submit', () => {
 			const success = new Success(cloneTemplate(successTemplate), {
 				onClick: () => {
 					modal.close();
-					clearOrderState(appData, order, events);
+					appData.clearBasket();
+					order.payment = '';
 				},
 			});
 
@@ -200,7 +182,8 @@ events.on('contacts:submit', () => {
 				}),
 			});
 
-			clearOrderState(appData, order, events);
+			appData.clearBasket();
+			order.payment = '';
 		})
 		.catch((err) => console.error(err));
 });

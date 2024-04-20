@@ -1,4 +1,4 @@
-import { IEvents } from './events';
+import { IEvents } from './Events';
 
 /**
  * Базовая модель, чтобы можно было отличить ее от простых объектов с данными
